@@ -16,7 +16,7 @@ func main() {
 
 	for i := 0; i < 32; i++ {
 
-		handler, err := ddc.NewDisplayHandler(i)
+		handler, err := ddc.NewWire(i)
 
 		if err != nil {
 
@@ -26,6 +26,8 @@ func main() {
 
 			log.Fatal(err)
 		}
+
+		defer handler.Close()
 
 		info, err := ddc.GetEDID[*ddc.EDID](handler)
 

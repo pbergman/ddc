@@ -1,3 +1,3 @@
-module github.com/pbergman/ddcutil-go
+module github.com/pbergman/ddc
 
 go 1.19

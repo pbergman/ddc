@@ -9,13 +9,15 @@ import (
 
 func main() {
 
-	handler, err := ddc.NewDisplayHandler(10)
+	handler, err := ddc.NewWire(10)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	value, err := handler.Get(0x12)
+	defer handler.Close()
+
+	value, err := handler.GetVCP(0x12)
 
 	if err != nil {
 		log.Fatal(err)

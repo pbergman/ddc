@@ -3,26 +3,29 @@ package main
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/pbergman/ddc"
 )
 
 func main() {
 
-	handler, err := ddc.NewDisplayHandler(10)
+	for i := 0; i < 32; i++ {
 
-	if err != nil {
-		log.Fatal(err)
-	}
+		handler, err := ddc.NewWire(i)
 
-	for i := 0; i < 50; i++ {
-		if handler.IsCLosed() {
-			fmt.Println("Closed")
-		} else {
-			fmt.Println("Open")
+		if err != nil {
+
+			if v, o := err.(*ddc.Error); o && v.Code == ddc.ERROR_DCC_BUS_NOT_FOUND {
+				continue
+			}
+
+			log.Fatal(err)
 		}
 
-		time.Sleep(5 * time.Second)
+		defer handler.Close()
+
+		if handler.IsActive() {
+			fmt.Printf("Found display with quick check on bus %d\n", i)
+		}
 	}
 }
