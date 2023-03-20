@@ -1,12 +1,15 @@
 package ddc
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"syscall"
+
+	"github.com/pbergman/logger"
 )
 
-func NewWire(bus int) (*Wire, error) {
+func NewWire(bus int, logger *logger.Logger) (*Wire, error) {
 
 	fd, err := os.OpenFile("/dev/i2c-"+strconv.Itoa(int(bus)), os.O_RDWR, 0600)
 
@@ -19,12 +22,13 @@ func NewWire(bus int) (*Wire, error) {
 		return nil, &Error{Code: ERROR_DCC_BUS_NOT_OPEN, Message: "could not open i2c bus: " + err.Error()}
 	}
 
-	return &Wire{fd: fd}, nil
+	return &Wire{fd: fd, logger: logger}, nil
 }
 
 type Wire struct {
-	fd   *os.File
-	addr uintptr
+	fd   	*os.File
+	logger 	*logger.Logger
+	addr 	uintptr
 }
 
 func (w *Wire) SetAddress(addr uintptr, force bool) error {
@@ -47,6 +51,10 @@ func (w *Wire) SetAddress(addr uintptr, force bool) error {
 		return err
 	}
 
+	if w.logger != nil {
+		w.logger.Debug(fmt.Sprintf("set i2c address to 0x%02x", addr))
+	}
+
 	w.addr = addr
 
 	return nil
@@ -62,11 +70,32 @@ func (w *Wire) WriteAt(addr uintptr, d []byte) (int, error) {
 }
 
 func (w *Wire) Write(d []byte) (int, error) {
-	return w.fd.Write(d)
+	
+	n, err := w.fd.Write(d)
+
+	if err != nil && nil != w.logger {
+		w.logger.Error(fmt.Sprintf("failed to write to i2c, %s", err.Error()))
+	}
+
+	if err == nil && nil != w.logger {
+		w.logger.Debug(fmt.Sprintf("written %v to i2c", d[:n]))
+	}
+
+	return n, err
 }
 
 func (w *Wire) Read(d []byte) (int, error) {
-	return w.fd.Read(d)
+	n, err := w.fd.Read(d)
+	
+	if err != nil && nil != w.logger {
+		w.logger.Error(fmt.Sprintf("failed to read from i2c, %s", err.Error()))
+	}
+
+	if err == nil && nil != w.logger {
+		w.logger.Debug(fmt.Sprintf("read %v from i2c", d[:n]))
+	}
+
+	return n, err
 }
 
 func (w *Wire) Close() error {
