@@ -99,13 +99,17 @@ func (e *EDIDHeaderInfo) Unmarshal(data []byte) error {
 // it will take the assumption that the screen is reachable (ON)
 func IsActive(h *Wire) bool {
 
-	if _, err := h.WriteAt(EDID_ADDR, []byte{0x00}); err != nil {
+	if err := h.SetAddress(EDID_ADDR, false); err != nil {
+		return false
+	}
+
+	if _, err := h.fd.Read([]byte{0x00}); err != nil {
 		return false
 	}
 
 	buf := make([]byte, 8)
 
-	if _, err := h.Read(buf); err != nil {
+	if _, err := h.fd.Read(buf); err != nil {
 		return false
 	}
 
