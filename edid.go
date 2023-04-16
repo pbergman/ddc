@@ -103,7 +103,7 @@ func IsActive(h *Wire) bool {
 		return false
 	}
 
-	if _, err := h.fd.Read([]byte{0x00}); err != nil {
+	if _, err := h.fd.Write([]byte{0x00}); err != nil {
 		return false
 	}
 
