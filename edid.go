@@ -111,7 +111,7 @@ func IsActive(h *Wire) bool {
 
 	if _, err := h.fd.Read(buf); err != nil {
 		return false
-	}
+	} 
 
 	return isValidEDIDFixedHeader(buf)
 }
