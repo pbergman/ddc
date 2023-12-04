@@ -16,7 +16,7 @@ func main() {
 
 	for i := 0; i < 32; i++ {
 
-		handler, err := ddc.NewWire(i)
+		handler, err := ddc.NewWire(i, nil)
 
 		if err != nil {
 
@@ -35,10 +35,15 @@ func main() {
 			fmt.Printf("Found display at bus %d\n", i)
 			fmt.Fprintf(writer, "Display Name\t%s\n", info.DisplayName)
 			fmt.Fprintf(writer, "Model Serial Number\t%s\n", info.DisplaySerialNumber)
+			fmt.Fprintf(writer, "Manufacturer \t%s\n", info.GetManufacturer())
+			fmt.Fprintf(writer, "Manufacture Year\t%d\n", info.YearOfManufacture)
+			fmt.Fprintf(writer, "Manufacture Week\t%d\n", info.WeekOfManufacture)
+			fmt.Fprintf(writer, "Version\t%d.%d\n", info.Version, info.Revision)
+			fmt.Fprintf(writer, "Serial Number\t%d\n", info.SerialNumber)
+			fmt.Fprintf(writer, "Product Code\t%d\n", info.ManufactureProductCode)
 			fmt.Fprintf(writer, "Unspecified Text\t%s\n", info.UnspecifiedText)
 			writer.Flush()
 			fmt.Printf("\n")
-
 		}
 	}
 }

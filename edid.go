@@ -1,6 +1,8 @@
 package ddc
 
-import "reflect"
+import (
+	"reflect"
+)
 
 const (
 	EDID_ADDR uintptr = 0x50
@@ -28,6 +30,7 @@ type EDIDDescriptor struct {
 	DisplayName         string
 }
 
+// https://en.wikipedia.org/wiki/Extended_Display_Identification_Data#EDID_1.4_data_format
 func (e *EDIDDescriptor) Unmarshal(data []byte) error {
 
 	var blocks = [4][]byte{
@@ -53,13 +56,15 @@ func (e *EDIDDescriptor) Unmarshal(data []byte) error {
 		}
 
 		if ref != nil {
-			value := block[5:]
-			for x := 0; x < 13; x++ {
+			var value = block[5:]
+
+			for x := 0; x < 12; x++ {
 				if value[x] == '\n' {
 					value = value[:x]
 					break
 				}
 			}
+
 			(*ref) = string(value)
 		}
 	}
@@ -78,13 +83,22 @@ type EDIDHeaderInfo struct {
 	Revision               byte
 }
 
+func (e *EDIDHeaderInfo) GetManufacturer() string {
+
+	if v, o := PNPRegistry[e.ManufacturerId]; o {
+		return e.ManufacturerId + " - " + v
+	}
+
+	return e.ManufacturerId
+}
+
 func (e *EDIDHeaderInfo) Unmarshal(data []byte) error {
 	e.ManufacturerId = string([]byte{
 		64 + ((data[8] >> 0x02) & 0x1f),
 		64 + (((data[8] & 0x03) << 0x03) | ((data[9] >> 0x05) & 0x07)),
 		64 + (data[9] & 0x1f),
 	})
-	e.ManufactureProductCode = uint16(data[10])<<8 | uint16(data[11])
+	e.ManufactureProductCode = uint16(data[11])<<8 | uint16(data[10])
 	e.SerialNumber = uint32(data[12]) | uint32(data[13])<<8 | uint32(data[14])<<16 | uint32(data[15])<<24
 	e.WeekOfManufacture = data[16]
 	e.YearOfManufacture = uint16(data[17]) + 1990
@@ -95,7 +109,7 @@ func (e *EDIDHeaderInfo) Unmarshal(data []byte) error {
 }
 
 // IsActive will try to read the first 8 bits of the EDID
-// response which should be the static header. On success
+// response which should be the static header. On success,
 // it will take the assumption that the screen is reachable (ON)
 func IsActive(h *Wire) bool {
 
@@ -111,13 +125,13 @@ func IsActive(h *Wire) bool {
 
 	if _, err := h.fd.Read(buf); err != nil {
 		return false
-	} 
+	}
 
 	return isValidEDIDFixedHeader(buf)
 }
 
 // GetEDID will try to read the EDID package at address 0x50,
-// for now we only support he decoding of descriptor and
+// for now we only support the decoding of descriptor and
 // header block.
 //
 // handler, err := ddc.NewDisplayHandler(10)
