@@ -19,8 +19,15 @@ type EDID struct {
 }
 
 func (e *EDID) Unmarshal(data []byte) error {
-	e.EDIDHeaderInfo.Unmarshal(data)
-	e.EDIDDescriptor.Unmarshal(data)
+
+	if err := e.EDIDHeaderInfo.Unmarshal(data); err != nil {
+		return err
+	}
+
+	if err := e.EDIDDescriptor.Unmarshal(data); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -83,15 +90,6 @@ type EDIDHeaderInfo struct {
 	Revision               byte
 }
 
-func (e *EDIDHeaderInfo) GetManufacturer() string {
-
-	if v, o := PNPRegistry[e.ManufacturerId]; o {
-		return e.ManufacturerId + " - " + v
-	}
-
-	return e.ManufacturerId
-}
-
 func (e *EDIDHeaderInfo) Unmarshal(data []byte) error {
 	e.ManufacturerId = string([]byte{
 		64 + ((data[8] >> 0x02) & 0x1f),
@@ -117,13 +115,13 @@ func IsActive(h *Wire) bool {
 		return false
 	}
 
-	if _, err := h.fd.Write([]byte{0x00}); err != nil {
+	if _, err := h.file.Write([]byte{0x00}); err != nil {
 		return false
 	}
 
 	buf := make([]byte, 8)
 
-	if _, err := h.fd.Read(buf); err != nil {
+	if _, err := h.file.Read(buf); err != nil {
 		return false
 	}
 
@@ -131,7 +129,7 @@ func IsActive(h *Wire) bool {
 }
 
 // GetEDID will try to read the EDID package at address 0x50,
-// for now we only support the decoding of descriptor and
+// for now we only implemented the decoding of descriptor and
 // header block.
 //
 // handler, err := ddc.NewDisplayHandler(10)
@@ -150,11 +148,11 @@ func IsActive(h *Wire) bool {
 // see: https://en.wikipedia.org/wiki/Extended_Display_Identification_Data
 func GetEDID[E EDIDBlock](h *Wire) (E, error) {
 
-	h.WriteAt(EDID_ADDR, []byte{0x00})
+	_, _ = h.WriteAt(EDID_ADDR, []byte{0x00})
 
 	buf := make([]byte, 128)
 
-	if _, err := h.fd.Read(buf); err != nil {
+	if _, err := h.file.Read(buf); err != nil {
 		return nil, err
 	}
 

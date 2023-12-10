@@ -2,33 +2,25 @@ package ddc
 
 import "fmt"
 
-func ddcPackageChecksum(pkg []byte) byte {
-	var chk byte = pkg[0]
-	for i, c := 1, len(pkg); i < c; i++ {
-		chk ^= pkg[i]
-	}
-	return chk
-}
+const (
+	ADDR_DEST uintptr = 0x6e
+	ADDR_SRC  uintptr = 0x51
+)
 
 func ddcCreatePackage(payload []byte) []byte {
 	size := byte(len(payload)) + 4
 	buf := make([]byte, size)
-	buf[0] = 0x6e              // x37<<1 + 0   destination address, write
-	buf[1] = 0x51              // x28<<1 + 1   source address
+	buf[0] = byte(ADDR_DEST)   // x37<<1 + 0   destination address, write
+	buf[1] = byte(ADDR_SRC)    // x28<<1 + 1   source address
 	buf[2] = (size - 4) | 0x80 // size
+
 	if size > 4 {
 		copy(buf[3:], payload)
 	}
-	buf[size-1] = ddcPackageChecksum(buf[:size])
-	return buf[1:]
-}
 
-func isZeroSlice(slice []byte) bool {
-	var s byte
-	for i, c := 0, len(slice); i < c; i++ {
-		s |= slice[i]
-	}
-	return s == 0
+	xor(buf[:size-1], &buf[size-1])
+
+	return buf[1:]
 }
 
 func dccValidateResponse(data []byte) error {
@@ -57,8 +49,12 @@ func dccValidateResponse(data []byte) error {
 
 	data[0] = 0x50 // for calculating DDC checksum
 
-	if chcks := ddcPackageChecksum(data[:11]); chcks != data[11] {
-		return &Error{Code: ERROR_DCC_RESP_CHECKSUM, Message: fmt.Sprintf("unexpected checksum.  actual=%#02x, calculated=%#02x", data[11], chcks)}
+	var chks byte
+
+	xor(data[:11], &chks)
+
+	if chks != data[11] {
+		return &Error{Code: ERROR_DCC_RESP_CHECKSUM, Message: fmt.Sprintf("unexpected checksum.  actual=%#02x, calculated=%#02x", data[11], chks)}
 	}
 
 	switch data[4] {

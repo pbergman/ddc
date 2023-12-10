@@ -8,3 +8,4 @@ This is a low level implementation so don`t expect any support for probing, feat
 
 To get information about your monitor capabilities i suggest to have a look at [`ddcutil`](https://www.ddcutil.com/).
 
+https://milek7.pl/ddcbacklight/mccs.pdf

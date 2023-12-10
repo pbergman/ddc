@@ -11,7 +11,7 @@ func main() {
 
 	for i := 0; i < 32; i++ {
 
-		handler, err := ddc.NewWire(i)
+		handler, err := ddc.NewWire(i, nil)
 
 		if err != nil {
 

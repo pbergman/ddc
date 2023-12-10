@@ -39,7 +39,7 @@ func GetVCP(w *Wire, index byte) (*VCPResponse, error) {
 		return nil, err
 	}
 
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(w.sleep)
 
 	var buf = make([]byte, 12)
 

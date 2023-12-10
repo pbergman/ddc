@@ -2,12 +2,21 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"text/tabwriter"
 
 	"github.com/pbergman/ddc"
 )
+
+type NopCloser struct {
+	io.ReadWriteCloser
+}
+
+func (n *NopCloser) Close() error {
+	return nil
+}
 
 func main() {
 
@@ -27,7 +36,13 @@ func main() {
 			log.Fatal(err)
 		}
 
+		handler.Debug(NopCloser{os.Stdout})
+
 		defer handler.Close()
+
+		if false == handler.IsActive() {
+			continue
+		}
 
 		info, err := ddc.GetEDID[*ddc.EDID](handler)
 
@@ -35,7 +50,6 @@ func main() {
 			fmt.Printf("Found display at bus %d\n", i)
 			fmt.Fprintf(writer, "Display Name\t%s\n", info.DisplayName)
 			fmt.Fprintf(writer, "Model Serial Number\t%s\n", info.DisplaySerialNumber)
-			fmt.Fprintf(writer, "Manufacturer \t%s\n", info.GetManufacturer())
 			fmt.Fprintf(writer, "Manufacture Year\t%d\n", info.YearOfManufacture)
 			fmt.Fprintf(writer, "Manufacture Week\t%d\n", info.WeekOfManufacture)
 			fmt.Fprintf(writer, "Version\t%d.%d\n", info.Version, info.Revision)

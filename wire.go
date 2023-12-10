@@ -2,16 +2,18 @@ package ddc
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/pbergman/logger"
 )
 
 func NewWire(bus int, logger *logger.Logger) (*Wire, error) {
 
-	fd, err := os.OpenFile("/dev/i2c-"+strconv.Itoa(int(bus)), os.O_RDWR, 0600)
+	file, err := os.OpenFile("/dev/i2c-"+strconv.Itoa(int(bus)), os.O_RDWR, 0600)
 
 	if err != nil {
 
@@ -22,13 +24,23 @@ func NewWire(bus int, logger *logger.Logger) (*Wire, error) {
 		return nil, &Error{Code: ERROR_DCC_BUS_NOT_OPEN, Message: "could not open i2c bus: " + err.Error()}
 	}
 
-	return &Wire{fd: fd, logger: logger}, nil
+	return &Wire{file: file, logger: logger, sleep: time.Millisecond * 10, fd: file.Fd()}, nil
 }
 
 type Wire struct {
-	fd   	*os.File
-	logger 	*logger.Logger
-	addr 	uintptr
+	file   io.ReadWriteCloser
+	fd     uintptr
+	sleep  time.Duration
+	logger *logger.Logger
+	addr   uintptr
+}
+
+func (w *Wire) Debug(out io.Writer) {
+	w.file = &debug{inner: w.file, outer: out}
+}
+
+func (w *Wire) SetDefaultSleep(sleep time.Duration) {
+	w.sleep = sleep
 }
 
 func (w *Wire) SetAddress(addr uintptr, force bool) error {
@@ -45,7 +57,7 @@ func (w *Wire) SetAddress(addr uintptr, force bool) error {
 		cmd = 0x0703 // I2C_SLAVE
 	}
 
-	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, w.fd.Fd(), cmd, addr)
+	_, _, err := syscall.Syscall(syscall.SYS_IOCTL, w.fd, cmd, addr)
 
 	if err != 0 {
 		return err
@@ -70,8 +82,8 @@ func (w *Wire) WriteAt(addr uintptr, d []byte) (int, error) {
 }
 
 func (w *Wire) Write(d []byte) (int, error) {
-	
-	n, err := w.fd.Write(d)
+
+	n, err := w.file.Write(d)
 
 	if err != nil && nil != w.logger {
 		w.logger.Error(fmt.Sprintf("failed to write to i2c, %s", err.Error()))
@@ -85,8 +97,8 @@ func (w *Wire) Write(d []byte) (int, error) {
 }
 
 func (w *Wire) Read(d []byte) (int, error) {
-	n, err := w.fd.Read(d)
-	
+	n, err := w.file.Read(d)
+
 	if err != nil && nil != w.logger {
 		w.logger.Error(fmt.Sprintf("failed to read from i2c, %s", err.Error()))
 	}
@@ -99,7 +111,7 @@ func (w *Wire) Read(d []byte) (int, error) {
 }
 
 func (w *Wire) Close() error {
-	return w.fd.Close()
+	return w.file.Close()
 }
 
 func (w *Wire) GetVCP(index byte) (*VCPResponse, error) {
