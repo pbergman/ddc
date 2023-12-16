@@ -58,18 +58,20 @@ func getValue(bus int, writer *tabwriter.Writer) error {
 		return nil
 	}
 
-	value, err := handler.GetVCP(0x10)
+	fmt.Printf("Found display at bus %d\n", bus)
 
-	if err != nil {
-		return nil
+	if value, err := handler.GetVCP(0xDF); err == nil {
+		fmt.Fprintf(writer, "VCP Version: %d.%d\n", value.SH, value.SL)
 	}
 
-	fmt.Printf("Found display at bus %d\n", bus)
-	fmt.Fprintf(writer, "Current: %d\n", value.Curr)
-	fmt.Fprintf(writer, "Max: 	 %d\n", value.Max)
-	fmt.Fprintf(writer, "Index: 	 %#02.x\n", value.Code)
+	if value, err := handler.GetVCP(0x10); err == nil {
+		fmt.Printf("Found display at bus %d\n", bus)
+		fmt.Fprintf(writer, "Current: %d\n", value.GetCurr())
+		fmt.Fprintf(writer, "Max: 	 %d\n", value.GetMax())
+		fmt.Fprintf(writer, "Index: 	 %#02.x\n", value.Code)
+	}
+
 	writer.Flush()
-	fmt.Printf("\n")
 
 	return nil
 }

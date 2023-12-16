@@ -1,36 +1,48 @@
 package main
 
 import (
-	"github.com/pbergman/ddc"
+	"fmt"
+	"io"
 	"log"
 	"os"
+	"time"
+
+	"github.com/pbergman/ddc"
 )
+
+type NopCloser struct {
+	io.ReadWriteCloser
+}
+
+func (n *NopCloser) Close() error {
+	return nil
+}
 
 func main() {
 
-	//for i := 0; i < 32; i++ {
-	//for i := 6; i < 7; i++ {
+	for i := 0; i < 32; i++ {
 
-	handler, err := ddc.NewWire(6, nil)
-	handler.Debug(os.Stdout)
+		handler, err := ddc.NewWire(i, nil)
 
-	if err != nil {
+		if err != nil {
 
-		if v, o := err.(*ddc.Error); o && v.Code == ddc.ERROR_DCC_BUS_NOT_FOUND {
-			//continue
-			panic(err)
+			if v, o := err.(*ddc.Error); o && v.Code == ddc.ERROR_DCC_BUS_NOT_FOUND {
+				continue
+			}
+
+			log.Fatal(err)
 		}
 
-		log.Fatal(err)
+		handler.SetDefaultSleep(50 * time.Millisecond)
+		handler.Debug(NopCloser{os.Stdout})
+
+		defer handler.Close()
+
+		if false == handler.IsActive() {
+			continue
+		}
+
+		fmt.Println(handler.GetCapabilities())
+
 	}
-
-	defer handler.Close()
-
-	if false == handler.IsActive() {
-		//continue
-		panic(err)
-	}
-
-	ddc.GetCapabilities(handler)
-	//}
 }

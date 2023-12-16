@@ -8,8 +8,18 @@ const (
 
 type VCPResponse struct {
 	Code byte
-	Max  uint16
-	Curr uint16
+	MH   byte // Maximum value High byte
+	ML   byte // Maximum value Low byte
+	SH   byte // Present value High byte
+	SL   byte // Present value Low byte
+}
+
+func (v VCPResponse) GetMax() uint16 {
+	return (uint16(v.MH) << 8) + uint16(v.ML)
+}
+
+func (v VCPResponse) GetCurr() uint16 {
+	return (uint16(v.SH) << 8) + uint16(v.SL)
 }
 
 func SetVCP(w *Wire, index byte, value uint16) error {
@@ -54,8 +64,10 @@ func GetVCP(w *Wire, index byte) (*VCPResponse, error) {
 	}
 
 	return &VCPResponse{
-		Code: buf[5],
-		Max:  (uint16(buf[7]) << 8) + uint16(buf[8]),
-		Curr: (uint16(buf[9]) << 8) + uint16(buf[10]),
+		Code: buf[0x05],
+		MH:   buf[0x07],
+		ML:   buf[0x08],
+		SH:   buf[0x09],
+		SL:   buf[0x0A],
 	}, nil
 }

@@ -114,6 +114,10 @@ func (w *Wire) Close() error {
 	return w.file.Close()
 }
 
+func (w *Wire) GetCapabilities() (string, error) {
+	return GetCapabilities(w)
+}
+
 func (w *Wire) GetVCP(index byte) (*VCPResponse, error) {
 	return GetVCP(w, index)
 }
